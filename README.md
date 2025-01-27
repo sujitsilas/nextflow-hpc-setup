@@ -2,7 +2,7 @@
 
 This repository provides instructions for setting up and running Nextflow-based nf-core pipelines on a High-Performance Computing (HPC) system. The setup process has been tailored for UCLA's Hoffman2 cluster. However, SGE clusters will follow similar installation steps. Alternatively, use the bash setup file for a more straightforward setup.
 
-If you find this documentation useful, please consider liking it!
+If you find this documentation useful, please consider starring it!
 
 ## Prerequisites
 
