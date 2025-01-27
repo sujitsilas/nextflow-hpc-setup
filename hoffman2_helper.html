@@ -1,0 +1,159 @@
+<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+  <div class="p-8">
+    <h1 class="text-3xl font-bold mb-6">Hoffman2 nfCore RNA-seq Bash Script Generator</h1>
+
+
+    <div id="login" class="tab-content active">
+      <h2 class="text-2xl font-semibold mb-4">Login to Hoffman2</h2>
+      <div class="bg-gray-100 p-4 rounded">
+        <code>ssh your_username@hoffman2.idre.ucla.edu</code>
+      </div>
+      <p>Replace 'your_username' with your actual Hoffman2 username.</p>
+    </div>
+
+    <div id="samplesheet" class="tab-content">
+      <h2 class="text-2xl font-semibold mb-4">Create Sample Sheet</h2>
+      
+      <div class="space-y-4">
+        <p class="mb-4">Create a CSV file with the following columns:</p>
+        <ul class="list-disc pl-6 mb-4">
+          <li><strong>sample</strong>: Unique sample identifier</li>
+          <li><strong>fastq_1</strong>: Path to first FASTQ file</li>
+          <li><strong>fastq_2</strong>: Path to second FASTQ file (for paired-end data)</li>
+          <li><strong>strandedness</strong>: RNA-seq strandedness (auto/forward/reverse/unstranded)</li>
+        </ul>
+
+        <div class="mb-6">
+          <h3 class="text-xl font-semibold mb-2">Example sample sheet:</h3>
+          <pre class="bg-gray-100 p-4 rounded whitespace-pre-wrap">sample,fastq_1,fastq_2,strandedness
+sample1,/path/to/sample1_R1.fastq.gz,/path/to/sample1_R2.fastq.gz,auto
+sample2,/path/to/sample2_R1.fastq.gz,/path/to/sample2_R2.fastq.gz,auto
+sample3,/path/to/sample3_R1.fastq.gz,/path/to/sample3_R2.fastq.gz,auto</pre>
+        </div>
+
+        <div class="bg-blue-50 p-4 rounded">
+          <h4 class="font-semibold mb-2">Tips:</h4>
+          <ul class="list-disc pl-6">
+            <li>Save the file with a .csv extension</li>
+            <li>Use full paths to FASTQ files</li>
+            <li>Ensure all FASTQ files are accessible on Hoffman2</li>
+            <li>If unsure about strandedness, use 'auto'</li>
+            <li>Double-check that there are no spaces after commas</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="bashscript" class="tab-content">
+      <h2 class="text-2xl font-semibold mb-4">Generate Bash Script</h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label>Job Name:</label>
+          <input type="text" id="jobName" class="border rounded p-2 w-full" placeholder="nfCore_RNAseq_job">
+        </div>
+        
+        <div>
+          <label>Working Directory:</label>
+          <input type="text" id="workDir" class="border rounded p-2 w-full" placeholder="/u/scratch/$USER/your_project_dir">
+        </div>
+        
+        <div>
+          <label>Runtime (HH:MM:SS):</label>
+          <input type="text" id="runtime" class="border rounded p-2 w-full" value="24:00:00">
+        </div>
+        
+        <div>
+          <label>Memory (e.g., 15G):</label>
+          <input type="text" id="memory" class="border rounded p-2 w-full" value="15G">
+        </div>
+        
+        <div>
+          <label>Email:</label>
+          <input type="email" id="email" class="border rounded p-2 w-full">
+        </div>
+        
+        <div>
+          <label>Sample Sheet Path:</label>
+          <input type="text" id="sampleSheet" class="border rounded p-2 w-full" placeholder="path/to/samplesheet.csv">
+        </div>
+        
+        <div>
+          <label>Custom Genome FASTA:</label>
+          <input type="text" id="genomeFasta" class="border rounded p-2 w-full" placeholder="path/to/genome.fa">
+        </div>
+        
+        <div>
+          <label>Custom GTF File:</label>
+          <input type="text" id="gtfFile" class="border rounded p-2 w-full" placeholder="path/to/annotation.gtf">
+        </div>
+        
+        <div>
+          <label>Aligner:</label>
+          <select id="aligner" class="border rounded p-2">
+            <option value="star_salmon">STAR + Salmon</option>
+            <option value="star_rsem">STAR + RSEM</option>
+            <option value="hisat2">HISAT2</option>
+          </select>
+        </div>
+        
+        
+        <button onclick="generateScript()" class="bg-blue-500 text-white px-4 py-2 rounded">Generate Script</button>
+      </div>
+
+      <div class="mt-6">
+        <h3 class="text-xl font-semibold mb-2">Bash Script:</h3>
+        <pre id="scriptOutput" class="bg-gray-100 p-4 rounded whitespace-pre-wrap"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function generateScript() {
+      const jobName = document.getElementById('jobName').value;
+      const workDir = document.getElementById('workDir').value;
+      const runtime = document.getElementById('runtime').value;
+      const memory = document.getElementById('memory').value;
+      const email = document.getElementById('email').value;
+      const sampleSheet = document.getElementById('sampleSheet').value;
+      const genomeFasta = document.getElementById('genomeFasta').value;
+      const gtfFile = document.getElementById('gtfFile').value;
+      const aligner = document.getElementById('aligner').value;
+      const script = `#!/bin/bash
+#$ -o ${workDir}/joblog.${jobName}
+#$ -j y
+#$ -l h_rt=${runtime},h_data=${memory}
+#$ -pe shared 12
+#$ -M ${email}
+#$ -m bea
+
+# Source system-wide bashrc
+. /etc/bashrc
+
+# Source user's local bash configuration
+if [ -f ~/.bashrc ]; then
+    . ~/.bashrc
+fi
+
+# Load required modules
+module load python/3.9.6
+module load singularity/3.8.5
+module load java/jdk-17.0.12
+module load java/jdk-11.0.14
+
+# Move into working directory
+cd ${workDir}
+
+# Define variables
+SAMPLESHEET="${sampleSheet}"
+OUTPUTDIR="${workDir}"
+GENOME="${genomeFasta}"
+GTF="${gtfFile}"
+
+# Run Nextflow pipeline
+nextflow run nf-core/rnaseq --input $SAMPLESHEET --fasta $GENOME --gtf $GTF -profile singularity --aligner ${aligner} --outdir $OUTPUTDIR`
+
+      document.getElementById('scriptOutput').textContent = script;
+    }
+  </script>
+</div>
