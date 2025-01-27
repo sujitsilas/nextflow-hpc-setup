@@ -9,7 +9,7 @@ If you find this documentation useful, please consider liking it!
 - HPC Access: Ensure you have valid login credentials and the necessary permissions.
 
 
-## Setup File Execution
+## Straightforward Setup
 Step 1: Login and spin up a node on your cluster
 ```
 qrsh -l h_data=15G,h_rt=3:00:00,h_vmem=4G -pe shared 4
